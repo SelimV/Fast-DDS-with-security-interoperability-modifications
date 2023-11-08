@@ -33,6 +33,10 @@ namespace security {
 static const char* const RSA_SHA256 = "RSASSA-PSS-SHA256";
 static const char* const ECDSA_SHA256 = "ECDSA-SHA256";
 
+// String constants used in PermissionsToken and IdentityToken
+static const char* const RSA_2048 = "RSA-2048";
+static const char* const EC_prime256v1 = "EC-prime256v1";
+
 static const char* const DH_2048_256 = "DH+MODP-2048-256";
 static const char* const ECDH_prime256v1 = "ECDH+prime256v1-CEUM";
 

@@ -215,6 +215,7 @@ static bool is_validation_in_time(
 #endif // if _MSC_VER != 1800
 }
 
+// Used for creating PermissionsTokens
 static bool get_signature_algorithm(
         X509* certificate,
         std::string& signature_algorithm,
@@ -241,17 +242,17 @@ static bool get_signature_algorithm(
                 {
                     if (strncmp(ptr->data, "ecdsa-with-SHA256", ptr->length) == 0)
                     {
-                        signature_algorithm = ECDSA_SHA256;
+                        signature_algorithm = EC_prime256v1;
                         returnedValue = true;
                     }
                     else if (strncmp(ptr->data, "sha256WithRSAEncryption", ptr->length) == 0)
                     {
-                        signature_algorithm = RSA_SHA256;
+                        signature_algorithm = RSA_2048;
                         returnedValue = true;
                     }
                     else if (strncmp(ptr->data, "sha1WithRSAEncryption", ptr->length) == 0)
                     {
-                        signature_algorithm = RSA_SHA256;
+                        signature_algorithm = RSA_2048;
                         returnedValue = true;
                     }
                 }

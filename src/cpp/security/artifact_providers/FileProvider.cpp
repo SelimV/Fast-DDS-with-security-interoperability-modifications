@@ -70,10 +70,15 @@ X509_STORE* FileProvider::load_ca(
                             {
                                 X509_NAME* ca_subject_name = X509_get_subject_name(itmp->x509);
                                 assert(ca_subject_name != nullptr);
-                                char* ca_subject_name_str = X509_NAME_oneline(ca_subject_name, 0, 0);
-                                assert(ca_subject_name_str != nullptr);
-                                ca_sn = ca_subject_name_str;
-                                OPENSSL_free(ca_subject_name_str);
+
+                                BIO *ca_sn_rfc2253_str = BIO_new(BIO_s_mem());
+                                X509_NAME_print_ex(ca_sn_rfc2253_str, ca_subject_name, 0, XN_FLAG_RFC2253 & ~ASN1_STRFLGS_ESC_MSB);
+                                const int bufsize = 1024;
+                                char buffer[bufsize];
+                                int str_length = BIO_read(ca_sn_rfc2253_str, buffer, bufsize);
+                                BIO_free(ca_sn_rfc2253_str);
+
+                                ca_sn.assign(buffer, str_length);
                             }
 
                             // Retrieve signature algorithm

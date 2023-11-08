@@ -969,7 +969,7 @@ static bool generate_identity_token(
     token.class_id("DDS:Auth:PKI-DH:1.0");
 
     property.name("dds.cert.sn");
-    property.value() = handle->cert_sn_;
+    property.value() = handle->cert_sn_rfc2253_;
     property.propagate(true);
     token.properties().push_back(std::move(property));
 
@@ -1084,10 +1084,6 @@ ValidationResult_t PKIDH::validate_local_identity(
             // Get subject name.
             X509_NAME* cert_sn = X509_get_subject_name((*ih)->cert_);
             assert(cert_sn != nullptr);
-            char* cert_sn_str = X509_NAME_oneline(cert_sn, 0, 0);
-            assert(cert_sn_str != nullptr);
-            (*ih)->cert_sn_ = cert_sn_str;
-            OPENSSL_free(cert_sn_str);
             BIO* cert_sn_rfc2253_str = BIO_new(BIO_s_mem());
             X509_NAME_print_ex(cert_sn_rfc2253_str, cert_sn, 0, XN_FLAG_RFC2253 & ~ASN1_STRFLGS_ESC_MSB);
             const int bufsize = 1024;
@@ -1163,7 +1159,7 @@ ValidationResult_t PKIDH::validate_remote_identity(
         PKIIdentityHandle* rih = &PKIIdentityHandle::narrow(*get_identity_handle(exception));
 
         (*rih)->sn = ca_sn ? *ca_sn : "";
-        (*rih)->cert_sn_ = ""; // cert_sn ? *cert_sn : "";
+        (*rih)->cert_sn_rfc2253_ = ""; // cert_sn ? *cert_sn : "";
         (*rih)->algo = cert_algo ? *cert_algo : "";
         (*rih)->participant_key_ = remote_participant_key;
         *remote_identity_handle = rih;
@@ -1388,22 +1384,20 @@ ValidationResult_t PKIDH::begin_handshake_reply(
 
     X509_NAME* cert_sn = X509_get_subject_name(rih->cert_);
     assert(cert_sn != nullptr);
-    char* cert_sn_str = X509_NAME_oneline(cert_sn, 0, 0);
-    assert(cert_sn_str != nullptr);
-    if (!rih->cert_sn_.empty() && rih->cert_sn_.compare(cert_sn_str) != 0)
-    {
-        OPENSSL_free(cert_sn_str);
-        WARNING_SECURITY_LOGGING("PKIDH", "Certificated subject name invalid");
-        return ValidationResult_t::VALIDATION_FAILED;
-    }
-    rih->cert_sn_.assign(cert_sn_str);
-    OPENSSL_free(cert_sn_str);
+
     BIO* cert_sn_rfc2253_str = BIO_new(BIO_s_mem());
     X509_NAME_print_ex(cert_sn_rfc2253_str, cert_sn, 0, XN_FLAG_RFC2253 & ~ASN1_STRFLGS_ESC_MSB);
     const int bufsize = 1024;
     char buffer[bufsize];
     int str_length = BIO_read(cert_sn_rfc2253_str, buffer, bufsize);
     BIO_free(cert_sn_rfc2253_str);
+
+    if (!rih->cert_sn_rfc2253_.empty() && rih->cert_sn_rfc2253_.compare(buffer) != 0)
+    {
+        WARNING_SECURITY_LOGGING("PKIDH", "Certificated subject name invalid");
+        return ValidationResult_t::VALIDATION_FAILED;
+    }
+
     rih->cert_sn_rfc2253_.assign(buffer, str_length);
 
     if (!verify_certificate(lih->store_, rih->cert_, lih->there_are_crls_))
@@ -1814,21 +1808,20 @@ ValidationResult_t PKIDH::process_handshake_request(
 
     X509_NAME* cert_sn = X509_get_subject_name(rih->cert_);
     assert(cert_sn != nullptr);
-    char* cert_sn_str = X509_NAME_oneline(cert_sn, 0, 0);
-    assert(cert_sn_str != nullptr);
-    if (!rih->cert_sn_.empty() && rih->cert_sn_.compare(cert_sn_str) != 0)
-    {
-        OPENSSL_free(cert_sn_str);
-        WARNING_SECURITY_LOGGING("PKIDH", "Certificated subject name invalid");
-        return ValidationResult_t::VALIDATION_FAILED;
-    }
-    OPENSSL_free(cert_sn_str);
+
     BIO* cert_sn_rfc2253_str = BIO_new(BIO_s_mem());
     X509_NAME_print_ex(cert_sn_rfc2253_str, cert_sn, 0, XN_FLAG_RFC2253 & ~ASN1_STRFLGS_ESC_MSB);
     const int bufsize = 1024;
     char buffer[bufsize];
     int str_length = BIO_read(cert_sn_rfc2253_str, buffer, bufsize);
     BIO_free(cert_sn_rfc2253_str);
+
+    if (!rih->cert_sn_rfc2253_.empty() && rih->cert_sn_rfc2253_.compare(buffer) != 0)
+    {
+        WARNING_SECURITY_LOGGING("PKIDH", "Certificated subject name invalid");
+        return ValidationResult_t::VALIDATION_FAILED;
+    }
+
     rih->cert_sn_rfc2253_.assign(buffer, str_length);
 
     if (!verify_certificate(lih->store_, rih->cert_, lih->there_are_crls_))

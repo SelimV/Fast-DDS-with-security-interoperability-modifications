@@ -78,9 +78,15 @@ IdentityToken AuthenticationPluginTest::generate_remote_identity_token_ok(
     // dds.cert.sn
     property.name("dds.cert.sn");
     X509_NAME* cert_sn = X509_get_subject_name(h->cert_);
-    char* cert_sn_str = X509_NAME_oneline(cert_sn, 0, 0);
-    property.value() = cert_sn_str;
-    OPENSSL_free(cert_sn_str);
+
+    BIO *cert_sn_rfc2253_str = BIO_new(BIO_s_mem());
+    X509_NAME_print_ex(cert_sn_rfc2253_str, cert_sn, 0, XN_FLAG_RFC2253 & ~ASN1_STRFLGS_ESC_MSB);
+    const int bufsize = 1024;
+    char buffer[bufsize];
+    int str_length = BIO_read(cert_sn_rfc2253_str, buffer, bufsize);
+    BIO_free(cert_sn_rfc2253_str);
+
+    property.value().assign(buffer, str_length);
     token.properties().emplace_back(std::move(property));
 
     // dds.cert.algo

@@ -971,7 +971,7 @@ PermissionsHandle* Permissions::validate_remote_permissions(
         if (is_validation_in_time(grant.validity))
         {
             if (rfc2253_string_compare(grant.subject_name, rih->cert_sn_rfc2253_) ||
-                    strcmp(grant.subject_name.c_str(), rih->cert_sn_.c_str()) == 0)
+                    strcmp(grant.subject_name.c_str(), rih->cert_sn_rfc2253_.c_str()) == 0)
             {
                 remote_grant = std::move(grant);
                 break;

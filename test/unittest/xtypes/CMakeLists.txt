@@ -50,14 +50,17 @@ set(XTYPES_SOURCE
     ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/log/OStreamConsumer.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/log/StdoutConsumer.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/log/StdoutErrConsumer.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/topic/TopicDataType.cpp
     )
 
 set(XTYPES_TEST_SOURCE
     XTypesTests.cpp
     idl/TypesTypeObject.cxx
     idl/Types.cxx
+    idl/Typesv1.cxx
     idl/WideEnumTypeObject.cxx
     idl/WideEnum.cxx
+    idl/WideEnumv1.cxx
     ${XTYPES_SOURCE}
     )
 
@@ -89,8 +92,4 @@ if(MSVC OR MSVC_IDE)
 else()
     target_link_libraries(XTypesTests ${PRIVACY} fastcdr)
 endif()
-add_gtest(XTypesTests SOURCES ${XTYPES_TEST_SOURCE})
-
-if(ANDROID)
-    set_property(TARGET XTypesTests PROPERTY CROSSCOMPILING_EMULATOR "adb;shell;cd;${CMAKE_CURRENT_BINARY_DIR};&&")
-endif()
+gtest_discover_tests(XTypesTests)

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.20)
 
 project("ContentFilterTopic" VERSION 1 LANGUAGES CXX)
 
@@ -32,6 +32,7 @@ set(CFT_COMMON_SOURCES
     ContentFilteredTopicExamplePublisher.cpp
     ContentFilteredTopicExampleSubscriber.cpp
     HelloWorld.cxx
+    HelloWorldv1.cxx
     HelloWorldPubSubTypes.cxx
     HelloWorldTypeObject.cxx
     )

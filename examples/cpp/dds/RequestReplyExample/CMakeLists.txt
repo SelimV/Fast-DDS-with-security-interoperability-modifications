@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.20)
 
 project(RequestReplyExample VERSION 1 LANGUAGES CXX)
 
@@ -37,6 +37,7 @@ endif()
 message(STATUS "Configuring Request-Reply example...")
 set(DDS_REQUEST_REPLY_EXAMPLE_COMMON_SOURCES
     Calculator.cxx
+    Calculatorv1.cxx
     CalculatorPubSubTypes.cxx
     )
 set( DDS_REQUEST_REPLY_EXAMPLE_CLIENT_SOURCES

@@ -46,7 +46,7 @@ typedef octet EquivalenceHash[14];
 
 /*!
  * @brief This class represents the union TypeObjectHashId defined by the user in the IDL file.
- * @ingroup TYPEOBJECTHASHID
+ * @ingroup TYPES_MODULE
  */
 class TypeObjectHashId
 {
@@ -137,6 +137,20 @@ public:
      * @exception eprosima::fastcdr::BadParamException This exception is thrown if the requested union member is not the current selection.
      */
     EquivalenceHash& hash();
+
+    /*!
+     * @brief This function serializes an object using CDR serialization.
+     * @param cdr CDR serialization object.
+     */
+    void serialize(
+            eprosima::fastcdr::Cdr& cdr) const;
+
+    /*!
+     * @brief This function deserializes an object using CDR serialization.
+     * @param cdr CDR serialization object.
+     */
+    void deserialize(
+            eprosima::fastcdr::Cdr& cdr);
 
     /*!
      * @brief This function returns the maximum serialized size of the Key of an object

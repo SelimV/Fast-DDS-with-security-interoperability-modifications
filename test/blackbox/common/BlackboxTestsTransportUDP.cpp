@@ -524,7 +524,7 @@ void deliver_datagram_from_file(
     std::basic_ifstream<char> file(filename, std::ios::binary | std::ios::in);
 
     file.seekg(0, file.end);
-    size_t file_size = file.tellg();
+    size_t file_size = static_cast<size_t>(file.tellg());
     file.seekg(0, file.beg);
 
     std::vector<uint8_t> buf(file_size);
@@ -552,6 +552,7 @@ TEST(TransportUDP, DatagramInjection)
     ASSERT_FALSE(receivers.empty());
 
     deliver_datagram_from_file(receivers, "datagrams/16784.bin");
+    deliver_datagram_from_file(receivers, "datagrams/20140.bin");
 }
 
 // Test for ==operator UDPTransportDescriptor is not required as it is an abstract class and in UDPv4 is same method

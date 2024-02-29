@@ -22,16 +22,17 @@
 #include <chrono>
 #include <mutex>
 
+#include <fastdds/core/policy/ParameterList.hpp>
+#include <fastdds/core/policy/QosPoliciesSerializer.hpp>
 #include <fastdds/dds/log/Log.hpp>
 #include <fastdds/rtps/builtin/BuiltinProtocols.h>
 #include <fastdds/rtps/builtin/data/ReaderProxyData.h>
 #include <fastdds/rtps/builtin/data/WriterProxyData.h>
 #include <fastdds/rtps/builtin/discovery/participant/PDPSimple.h>
+#include <fastdds/rtps/common/VendorId_t.hpp>
 #include <fastdds/rtps/resources/TimedEvent.h>
 #include <fastrtps/utils/TimeConversion.h>
 
-#include <fastdds/core/policy/ParameterList.hpp>
-#include <fastdds/core/policy/QosPoliciesSerializer.hpp>
 #include <rtps/network/NetworkFactory.h>
 #include <rtps/transport/shared_mem/SHMLocator.hpp>
 
@@ -44,6 +45,8 @@ using ParameterList = eprosima::fastdds::dds::ParameterList;
 namespace eprosima {
 namespace fastrtps {
 namespace rtps {
+
+using ::operator <<;
 
 ParticipantProxyData::ParticipantProxyData(
         const RTPSParticipantAllocationAttributes& allocation)
@@ -65,6 +68,7 @@ ParticipantProxyData::ParticipantProxyData(
     , should_check_lease_duration(false)
     , m_readers(new ProxyHashTable<ReaderProxyData>(allocation.readers))
     , m_writers(new ProxyHashTable<WriterProxyData>(allocation.writers))
+    , m_sample_identity()
 {
     m_userData.set_max_size(static_cast<uint32_t>(allocation.data_limits.max_user_data));
 }
@@ -99,6 +103,7 @@ ParticipantProxyData::ParticipantProxyData(
     // so there is no need to copy m_readers and m_writers
     , m_readers(nullptr)
     , m_writers(nullptr)
+    , m_sample_identity(pdata.m_sample_identity)
     , lease_duration_(pdata.lease_duration_)
 {
 }
@@ -385,9 +390,11 @@ bool ParticipantProxyData::readFromCDRMessage(
         CDRMessage_t* msg,
         bool use_encapsulation,
         const NetworkFactory& network,
-        bool is_shm_transport_available)
+        bool is_shm_transport_available,
+        bool should_filter_locators,
+        fastdds::rtps::VendorId_t source_vendor_id)
 {
-    auto param_process = [this, &network, &is_shm_transport_available](
+    auto param_process = [this, &network, &is_shm_transport_available, &should_filter_locators, source_vendor_id](
         CDRMessage_t* msg, const ParameterId_t& pid, uint16_t plength)
             {
                 switch (pid)
@@ -461,6 +468,14 @@ bool ParticipantProxyData::readFromCDRMessage(
                     }
                     case fastdds::dds::PID_NETWORK_CONFIGURATION_SET:
                     {
+                        // Ignore custom PID when coming from other vendors
+                        if (c_VendorId_eProsima != source_vendor_id)
+                        {
+                            EPROSIMA_LOG_INFO(RTPS_PROXY_DATA,
+                                    "Ignoring custom PID" << pid << " from vendor " << source_vendor_id);
+                            return true;
+                        }
+
                         ParameterNetworkConfigSet_t p(pid, plength);
                         if (!fastdds::dds::ParameterSerializer<ParameterNetworkConfigSet_t>::read_from_cdr_message(p,
                                 msg, plength))
@@ -480,14 +495,21 @@ bool ParticipantProxyData::readFromCDRMessage(
                             return false;
                         }
 
-                        Locator_t temp_locator;
-                        if (network.transform_remote_locator(p.locator, temp_locator, m_networkConfiguration))
+                        if (!should_filter_locators)
                         {
-                            ProxyDataFilters::filter_locators(
-                                is_shm_transport_available,
-                                metatraffic_locators,
-                                temp_locator,
-                                false);
+                            metatraffic_locators.add_multicast_locator(p.locator);
+                        }
+                        else
+                        {
+                            Locator_t temp_locator;
+                            if (network.transform_remote_locator(p.locator, temp_locator, m_networkConfiguration))
+                            {
+                                ProxyDataFilters::filter_locators(
+                                    is_shm_transport_available,
+                                    metatraffic_locators,
+                                    temp_locator,
+                                    false);
+                            }
                         }
                         break;
                     }
@@ -500,14 +522,21 @@ bool ParticipantProxyData::readFromCDRMessage(
                             return false;
                         }
 
-                        Locator_t temp_locator;
-                        if (network.transform_remote_locator(p.locator, temp_locator, m_networkConfiguration))
+                        if (!should_filter_locators)
                         {
-                            ProxyDataFilters::filter_locators(
-                                is_shm_transport_available,
-                                metatraffic_locators,
-                                temp_locator,
-                                true);
+                            metatraffic_locators.add_unicast_locator(p.locator);
+                        }
+                        else
+                        {
+                            Locator_t temp_locator;
+                            if (network.transform_remote_locator(p.locator, temp_locator, m_networkConfiguration))
+                            {
+                                ProxyDataFilters::filter_locators(
+                                    is_shm_transport_available,
+                                    metatraffic_locators,
+                                    temp_locator,
+                                    true);
+                            }
                         }
                         break;
                     }
@@ -520,14 +549,21 @@ bool ParticipantProxyData::readFromCDRMessage(
                             return false;
                         }
 
-                        Locator_t temp_locator;
-                        if (network.transform_remote_locator(p.locator, temp_locator, m_networkConfiguration))
+                        if (!should_filter_locators)
                         {
-                            ProxyDataFilters::filter_locators(
-                                is_shm_transport_available,
-                                default_locators,
-                                temp_locator,
-                                true);
+                            default_locators.add_unicast_locator(p.locator);
+                        }
+                        else
+                        {
+                            Locator_t temp_locator;
+                            if (network.transform_remote_locator(p.locator, temp_locator, m_networkConfiguration))
+                            {
+                                ProxyDataFilters::filter_locators(
+                                    is_shm_transport_available,
+                                    default_locators,
+                                    temp_locator,
+                                    true);
+                            }
                         }
                         break;
                     }
@@ -540,14 +576,21 @@ bool ParticipantProxyData::readFromCDRMessage(
                             return false;
                         }
 
-                        Locator_t temp_locator;
-                        if (network.transform_remote_locator(p.locator, temp_locator, m_networkConfiguration))
+                        if (!should_filter_locators)
                         {
-                            ProxyDataFilters::filter_locators(
-                                is_shm_transport_available,
-                                default_locators,
-                                temp_locator,
-                                false);
+                            default_locators.add_multicast_locator(p.locator);
+                        }
+                        else
+                        {
+                            Locator_t temp_locator;
+                            if (network.transform_remote_locator(p.locator, temp_locator, m_networkConfiguration))
+                            {
+                                ProxyDataFilters::filter_locators(
+                                    is_shm_transport_available,
+                                    default_locators,
+                                    temp_locator,
+                                    false);
+                            }
                         }
                         break;
                     }
@@ -729,6 +772,7 @@ void ParticipantProxyData::copy(
     isAlive = pdata.isAlive;
     m_userData = pdata.m_userData;
     m_properties = pdata.m_properties;
+    m_sample_identity = pdata.m_sample_identity;
 
     // This method is only called when a new participant is discovered.The destination of the copy
     // will always be a new ParticipantProxyData or one from the pool, so there is no need for

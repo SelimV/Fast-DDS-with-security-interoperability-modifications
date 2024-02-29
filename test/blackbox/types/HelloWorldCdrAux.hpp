@@ -24,7 +24,7 @@
 
 #include "HelloWorld.h"
 
-constexpr uint32_t HelloWorld_max_cdr_typesize {141UL};
+constexpr uint32_t HelloWorld_max_cdr_typesize {137UL};
 constexpr uint32_t HelloWorld_max_key_cdr_typesize {0UL};
 
 
@@ -33,6 +33,8 @@ namespace fastcdr {
 
 class Cdr;
 class CdrSizeCalculator;
+
+
 
 eProsima_user_DllExport void serialize_key(
         eprosima::fastcdr::Cdr& scdr,
@@ -43,3 +45,4 @@ eProsima_user_DllExport void serialize_key(
 } // namespace eprosima
 
 #endif // _FAST_DDS_GENERATED_HELLOWORLDCDRAUX_HPP_
+

@@ -154,13 +154,14 @@ void RTPSWriter::deinit()
         {
             flow_controller_->remove_change(*it, std::chrono::steady_clock::now() + std::chrono::hours(24));
         }
-    }
-    for (auto it = mp_history->changesBegin(); it != mp_history->changesEnd(); ++it)
-    {
-        release_change(*it);
-    }
 
-    mp_history->m_changes.clear();
+        for (auto it = mp_history->changesBegin(); it != mp_history->changesEnd(); ++it)
+        {
+            release_change(*it);
+        }
+
+        mp_history->m_changes.clear();
+    }
     flow_controller_->unregister_writer(this);
 }
 
@@ -197,6 +198,7 @@ CacheChange_t* RTPSWriter::new_change(
     reserved_change->writer_info.previous = nullptr;
     reserved_change->writer_info.next = nullptr;
     reserved_change->writer_info.num_sent_submessages = 0;
+    reserved_change->vendor_id = c_VendorId_eProsima;
     return reserved_change;
 }
 
@@ -224,6 +226,7 @@ CacheChange_t* RTPSWriter::new_change(
     reserved_change->writer_info.previous = nullptr;
     reserved_change->writer_info.next = nullptr;
     reserved_change->writer_info.num_sent_submessages = 0;
+    reserved_change->vendor_id = c_VendorId_eProsima;
     return reserved_change;
 }
 

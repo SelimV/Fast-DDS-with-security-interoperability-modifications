@@ -12,14 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "BlackboxTests.hpp"
+#include <thread>
 
+#include <gtest/gtest.h>
+
+#include <fastrtps/xmlparser/XMLProfileManager.h>
+
+#include "BlackboxTests.hpp"
 #include "PubSubParticipant.hpp"
 #include "PubSubReader.hpp"
 #include "PubSubWriter.hpp"
-#include <fastrtps/xmlparser/XMLProfileManager.h>
-
-#include <gtest/gtest.h>
 
 using namespace eprosima::fastrtps;
 using namespace eprosima::fastrtps::rtps;
@@ -293,6 +295,17 @@ TEST(DDSDataReader, ConsistentReliabilityWhenIntraprocess)
     //! Reset back to INTRAPROCESS_OFF
     library_settings.intraprocess_delivery = eprosima::fastrtps::INTRAPROCESS_OFF;
     xmlparser::XMLProfileManager::library_settings(library_settings);
+}
+
+/**
+ * This is a regression test for issue https://eprosima.easyredmine.com/issues/20504.
+ * It checks that a DataReader be created with default Qos and a large history depth.
+ */
+TEST(DDSDataReader, default_qos_large_history_depth)
+{
+    PubSubReader<HelloWorldPubSubType> reader(TEST_TOPIC_NAME);
+    reader.history_depth(1000).init();
+    ASSERT_TRUE(reader.isInitialized());
 }
 
 #ifdef INSTANTIATE_TEST_SUITE_P
